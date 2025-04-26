@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poverty & Employment Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://d3js.org/topojson.v3.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue-dark: #2c3e50;
+      --blue: #3498db;
+      --red: #e74c3c;
+      --light: #ecf0f1;
+      --gray-dark: #34495e;
+      --green: #27ae60;
+      --shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      background-color: #f9f9f9;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    header {
+      background: linear-gradient(135deg, var(--blue-dark), var(--gray-dark));
+      color: white;
+      padding: 2rem 1rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    
+    h1 { font-size: 2.2rem; margin: 0.5rem 0; }
+    h2 { font-size: 1.2rem; font-weight: 300; margin: 0.5rem 0; }
+    .subtitle { font-size: 0.9rem; opacity: 0.8; margin: 0.5rem 0; }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    
+    .dashboard {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: 1fr;
+    }
+    
+    @media (min-width: 992px) {
+      .dashboard { grid-template-columns: 1fr 1fr; }
+    }
+    
+    .panel {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      padding: 1.5rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .panel:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.75rem;
+    }
+    
+    .visualization-container {
+      position: relative;
+      margin-top: 1rem;
+    }
+    
+    .map-container, .scatterplot-container {
+      position: relative;
+      height: 500px;
+    }
+    
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 0.8rem 1rem;
+      border-radius: 4px;
+      pointer-events: none;
+      font-size: 0.9rem;
+      z-index: 100;
+      max-width: 250px;
+      transform: translate(-50%, -100%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .tooltip:after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    }
+    
+    .highlighted {
+      stroke: var(--red) !important;
+      stroke-width: 2px !important;
+    }
+    
+    .selected-point {
+      fill: var(--red) !important;
+      stroke: #c0392b !important;
+      stroke-width: 1.5px !important;
+      r: 6 !important;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-size: 1.2rem;
+      color: var(--gray-dark);
+    }
+    
+    .loading-spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid var(--blue);
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Additional optimized styles... */
+  </style>
+</head>
+<body>
+<header>
+  <h1>U.S. County Poverty & Employment Analysis</h1>
+  <h2>Exploring Socioeconomic Indicators Across America</h2>
+  <div class="subtitle">By: Umesh Chandra</div>
+  <div class="subtitle">Data Source: USDA Atlas of Rural and Small-Town America</div>
+</header>
+
+<div class="container">
+  <div class="search-group">
+    <label for="county-search">Search for a County:</label>
+    <input type="text" id="county-search" placeholder="Enter county name or state...">
+    <div class="search-results" id="search-results"></div>
+  </div>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label for="attribute-select">Map Visualization:</label>
+      <select id="attribute-select">
+        <option value="Poverty_Rate_ACS">Poverty Rate</option>
+        <option value="EmploymentRate">Employment Rate</option>
+        <option value="PerCapitaInc">Per Capita Income</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label for="x-axis-select">Scatterplot X-Axis:</label>
+      <select id="x-axis-select">
+        <option value="Poverty_Rate_ACS">Poverty Rate</option>
+        <option value="EmploymentRate">Employment Rate</option>
+        <option value="PerCapitaInc">Per Capita Income</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label for="y-axis-select">Scatterplot Y-Axis:</label>
+      <select id="y-axis-select">
+        <option value="EmploymentRate">Employment Rate</option>
+        <option value="Poverty_Rate_ACS">Poverty Rate</option>
+        <option value="PerCapitaInc">Per Capita Income</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="dashboard">
+    <div class="panel">
+      <div class="panel-header">
+        <h3 class="panel-title">County-Level Choropleth Map</h3>
+      </div>
+      <div class="visualization-container">
+        <div class="map-container" id="map-container">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            Loading map data...
+          </div>
+          <svg id="map"></svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-header">
+        <h3 class="panel-title">Attribute Correlation</h3>
+      </div>
+      <div class="visualization-container">
+        <div class="scatterplot-container" id="scatter-container">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            Loading scatterplot data...
+          </div>
+          <svg id="scatterplot"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// Configuration
+const config = {
+  width: 800,
+  height: 500,
+  margin: { top: 40, right: 40, bottom: 60, left: 60 }
+};
+
+// DOM Elements
+const dom = {
+  mapContainer: document.getElementById("map-container"),
+  scatterContainer: document.getElementById("scatter-container"),
+  countySearch: document.getElementById("county-search"),
+  searchResults: document.getElementById("search-results"),
+  attributeSelect: document.getElementById("attribute-select"),
+  xAxisSelect: document.getElementById("x-axis-select"),
+  yAxisSelect: document.getElementById("y-axis-select"),
+  tooltip: document.getElementById("tooltip")
+};
+
+// Data and State
+const state = {
+  data: [],
+  selectedCounty: null,
+  geoData: null,
+  currentScatterAttrs: { x: null, y: null },
+  regressionLine: null
+};
+
+// Color scales configuration
+const colorScales = {
+  Poverty_Rate_ACS: { scale: d3.interpolateReds, domain: [0, 50] },
+  EmploymentRate: { scale: d3.interpolateGreens, domain: [0, 100] },
+  PerCapitaInc: { scale: d3.interpolateBlues, domain: [0, 100000] }
+};
+
+// Attribute labels
+const attrLabels = {
+  Poverty_Rate_ACS: "Poverty Rate (%)",
+  EmploymentRate: "Employment Rate (%)",
+  PerCapitaInc: "Per Capita Income ($)"
+};
+
+// Initialize visualizations
+async function initVisualizations() {
+  try {
+    const [csvData, geoJson] = await Promise.all([
+      d3.csv("final_poverty_employment_data_fixed_cleaned.csv"),
+      d3.json("us_counties_cleaned.json")
+    ]);
+    
+    // Process data
+    state.data = csvData.map(d => {
+      Object.keys(colorScales).forEach(attr => d[attr] = +d[attr]);
+      return d;
+    });
+    state.geoData = geoJson;
+    
+    initSearch();
+    createScatterplot(dom.xAxisSelect.value, dom.yAxisSelect.value);
+    createMap(dom.attributeSelect.value);
+    
+  } catch (error) {
+    console.error("Error loading data:", error);
+    dom.scatterContainer.querySelector(".loading").textContent = 
+      "Error loading data. Please check console for details.";
+  }
+}
+
+// Initialize search functionality
+function initSearch() {
+  dom.countySearch.addEventListener("input", function() {
+    const query = this.value.toLowerCase();
+    if (query.length < 2) {
+      dom.searchResults.style.display = "none";
+      return;
+    }
+    
+    const results = state.data.filter(d => 
+      d.County.toLowerCase().includes(query) || 
+      d.State.toLowerCase().includes(query)
+    ).slice(0, 10);
+    
+    if (results.length > 0) {
+      dom.searchResults.innerHTML = results.map(d => 
+        `<div class="search-result-item" data-fips="${d.FIPS.padStart(5, '0')}">
+          ${d.County}, ${d.State} (${d.Poverty_Rate_ACS}% poverty)
+        </div>`
+      ).join("");
+      
+      dom.searchResults.style.display = "block";
+      
+      // Add click handlers to search results
+      document.querySelectorAll(".search-result-item").forEach(item => {
+        item.addEventListener("click", function() {
+          state.selectedCounty = this.getAttribute("data-fips");
+          const county = state.data.find(d => d.FIPS.padStart(5, '0') === state.selectedCounty);
+          dom.countySearch.value = `${county.County}, ${county.State}`;
+          dom.searchResults.style.display = "none";
+          updateVisualizations();
+        });
+      });
+    } else {
+      dom.searchResults.innerHTML = "<div class='search-result-item'>No counties found</div>";
+      dom.searchResults.style.display = "block";
+    }
+  });
+  
+  // Hide results when clicking outside
+  document.addEventListener("click", (e) => {
+    if (e.target !== dom.countySearch) {
+      dom.searchResults.style.display = "none";
+    }
+  });
+}
+
+// Create choropleth map
+function createMap(attribute) {
+  if (!state.geoData) return;
+  
+  const svg = d3.select("#map").html("")
+    .attr("width", config.width)
+    .attr("height", config.height);
+  
+  const colorConfig = colorScales[attribute];
+  const colorScale = d3.scaleSequential(colorConfig.scale).domain(colorConfig.domain);
+  
+  const projection = d3.geoAlbersUsa()
+    .scale(1200)
+    .translate([config.width / 2, config.height / 2]);
+  
+  const path = d3.geoPath().projection(projection);
+  
+  svg.selectAll("path")
+    .data(topojson.feature(state.geoData, state.geoData.objects.counties).features)
+    .join("path")
+    .attr("d", path)
+    .attr("fill", d => {
+      const county = state.data.find(c => c.FIPS.padStart(5, '0') === d.id);
+      return county ? colorScale(county[attribute]) : "#eee";
+    })
+    .attr("stroke", "#fff")
+    .attr("stroke-width", d => d.id === state.selectedCounty ? 2 : 0.5)
+    .on("mouseover", (e, d) => showTooltip(e, d, true))
+    .on("mouseout", hideTooltip)
+    .on("click", (e, d) => {
+      state.selectedCounty = d.id;
+      updateVisualizations();
+    });
+  
+  dom.mapContainer.querySelector(".loading").style.display = "none";
+}
+
+// Create scatterplot
+function createScatterplot(xAttr, yAttr) {
+  state.currentScatterAttrs = { x: xAttr, y: yAttr };
+  
+  const svg = d3.select("#scatterplot").html("")
+    .attr("width", config.width)
+    .attr("height", config.height);
+  
+  const filteredData = state.data.filter(d => !isNaN(d[xAttr]) && !isNaN(d[yAttr]));
+  
+  // Calculate correlation and regression
+  const correlation = calculateCorrelation(filteredData, xAttr, yAttr);
+  state.regressionLine = calculateRegression(filteredData, xAttr, yAttr);
+  
+  // Set up scales
+  const xScale = d3.scaleLinear()
+    .domain(d3.extent(filteredData, d => d[xAttr]))
+    .nice()
+    .range([config.margin.left, config.width - config.margin.right]);
+  
+  const yScale = d3.scaleLinear()
+    .domain(d3.extent(filteredData, d => d[yAttr]))
+    .nice()
+    .range([config.height - config.margin.bottom, config.margin.top]);
+  
+  // Add chart elements
+  const chart = svg.append("g");
+  
+  // Add regression line
+  chart.append("line")
+    .attr("class", "trend-line")
+    .attr("x1", xScale(state.regressionLine.x1))
+    .attr("y1", yScale(state.regressionLine.y1))
+    .attr("x2", xScale(state.regressionLine.x2))
+    .attr("y2", yScale(state.regressionLine.y2));
+  
+  // Add data points
+  chart.selectAll("circle")
+    .data(filteredData)
+    .join("circle")
+    .attr("cx", d => xScale(d[xAttr]))
+    .attr("cy", d => yScale(d[yAttr]))
+    .attr("r", 4)
+    .attr("fill", "rgba(52, 152, 219, 0.6)")
+    .attr("class", d => d.FIPS.padStart(5, '0') === state.selectedCounty ? "selected-point" : null)
+    .on("mouseover", (e, d) => showTooltip(e, d, false))
+    .on("mouseout", hideTooltip)
+    .on("click", (e, d) => {
+      state.selectedCounty = d.FIPS.padStart(5, '0');
+      updateVisualizations();
+    });
+  
+  dom.scatterContainer.querySelector(".loading").style.display = "none";
+}
+
+// Helper functions
+function updateVisualizations() {
+  createMap(dom.attributeSelect.value);
+  createScatterplot(dom.xAxisSelect.value, dom.yAxisSelect.value);
+}
+
+function showTooltip(event, d, isMap) {
+  const county = isMap ? 
+    state.data.find(c => c.FIPS.padStart(5, '0') === d.id) : d;
+  
+  if (!county) return;
+  
+  const attr = isMap ? dom.attributeSelect.value : state.currentScatterAttrs.x;
+  const attr2 = isMap ? null : state.currentScatterAttrs.y;
+  
+  let content = `<div class="tooltip-title">${county.County}, ${county.State}</div>`;
+  
+  content += `
+    <div class="tooltip-row">
+      <span class="tooltip-label">${attrLabels[attr]}:</span>
+      <span>${formatValue(county[attr], attr)}</span>
+    </div>`;
+  
+  if (attr2) {
+    content += `
+      <div class="tooltip-row">
+        <span class="tooltip-label">${attrLabels[attr2]}:</span>
+        <span>${formatValue(county[attr2], attr2)}</span>
+      </div>`;
+  }
+  
+  dom.tooltip.innerHTML = content;
+  dom.tooltip.style.opacity = 1;
+  dom.tooltip.style.left = `${event.pageX}px`;
+  dom.tooltip.style.top = `${event.pageY - 10}px`;
+}
+
+function hideTooltip() {
+  dom.tooltip.style.opacity = 0;
+}
+
+function formatValue(value, attr) {
+  return attr === "PerCapitaInc" ? `$${d3.format(",.0f")(value)}` : `${value.toFixed(1)}%`;
+}
+
+function calculateCorrelation(data, xAttr, yAttr) {
+  const n = data.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+  
+  data.forEach(d => {
+    const x = d[xAttr], y = d[yAttr];
+    sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x; sumY2 += y * y;
+  });
+  
+  const numerator = sumXY - (sumX * sumY) / n;
+  const denominator = Math.sqrt((sumX2 - (sumX * sumX) / n) * (sumY2 - (sumY * sumY) / n));
+  
+  return denominator !== 0 ? numerator / denominator : 0;
+}
+
+function calculateRegression(data, xAttr, yAttr) {
+  const n = data.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  
+  data.forEach(d => {
+    const x = d[xAttr], y = d[yAttr];
+    sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x;
+  });
+  
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  const xMin = d3.min(data, d => d[xAttr]);
+  const xMax = d3.max(data, d => d[xAttr]);
+  
+  return {
+    slope, intercept,
+    x1: xMin, y1: slope * xMin + intercept,
+    x2: xMax, y2: slope * xMax + intercept
+  };
+}
+
+// Event listeners
+[dom.attributeSelect, dom.xAxisSelect, dom.yAxisSelect].forEach(select => {
+  select.addEventListener("change", () => {
+    if (select === dom.attributeSelect) {
+      createMap(select.value);
+    } else {
+      createScatterplot(dom.xAxisSelect.value, dom.yAxisSelect.value);
+    }
+  });
+});
+
+// Initialize
+initVisualizations();
+</script>
+</body>
+</html>
