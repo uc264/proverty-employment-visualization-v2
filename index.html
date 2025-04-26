@@ -6,16 +6,15 @@
   <title>Poverty & Employment Visualization</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/topojson.v3.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --blue-dark: #2c3e50;
-      --blue: #3498db;
-      --red: #e74c3c;
-      --light: #ecf0f1;
-      --gray-dark: #34495e;
-      --green: #27ae60;
-      --shadow: 0 2px 10px rgba(0,0,0,0.1);
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --light-color: #ecf0f1;
+      --dark-color: #34495e;
+      --success-color: #27ae60;
     }
     
     body {
@@ -27,16 +26,30 @@
     }
     
     header {
-      background: linear-gradient(135deg, var(--blue-dark), var(--gray-dark));
+      background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
       color: white;
       padding: 2rem 1rem;
       text-align: center;
-      box-shadow: var(--shadow);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
     
-    h1 { font-size: 2.2rem; margin: 0.5rem 0; }
-    h2 { font-size: 1.2rem; font-weight: 300; margin: 0.5rem 0; }
-    .subtitle { font-size: 0.9rem; opacity: 0.8; margin: 0.5rem 0; }
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+    
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 300;
+      margin-bottom: 1rem;
+    }
+    
+    .subtitle {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin: 0.5rem 0;
+    }
     
     .container {
       max-width: 1200px;
@@ -46,12 +59,14 @@
     
     .dashboard {
       display: grid;
-      gap: 2rem;
       grid-template-columns: 1fr;
+      gap: 2rem;
     }
     
     @media (min-width: 992px) {
-      .dashboard { grid-template-columns: 1fr 1fr; }
+      .dashboard {
+        grid-template-columns: 1fr 1fr;
+      }
     }
     
     .panel {
@@ -76,12 +91,66 @@
       padding-bottom: 0.75rem;
     }
     
+    .panel-title {
+      font-size: 1.3rem;
+      font-weight: 500;
+      color: var(--primary-color);
+      margin: 0;
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      min-width: 200px;
+    }
+    
+    .search-group {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 1rem;
+    }
+    
+    label {
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+      color: var(--dark-color);
+      font-weight: 500;
+    }
+    
+    select, input {
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: inherit;
+      background-color: white;
+      transition: border-color 0.3s;
+    }
+    
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--secondary-color);
+    }
+    
     .visualization-container {
       position: relative;
       margin-top: 1rem;
     }
     
-    .map-container, .scatterplot-container {
+    .map-container {
+      position: relative;
+      height: 500px;
+    }
+    
+    .scatterplot-container {
       position: relative;
       height: 500px;
     }
@@ -112,16 +181,94 @@
       border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
     }
     
+    .tooltip-title {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: white;
+    }
+    
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.2rem;
+    }
+    
+    .tooltip-label {
+      font-weight: 500;
+      margin-right: 1rem;
+    }
+    
+    .legend {
+      display: flex;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin: 0 0.5rem;
+    }
+    
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 0.5rem;
+      border-radius: 3px;
+    }
+    
     .highlighted {
-      stroke: var(--red) !important;
+      stroke: var(--accent-color) !important;
       stroke-width: 2px !important;
     }
     
-    .selected-point {
-      fill: var(--red) !important;
-      stroke: #c0392b !important;
-      stroke-width: 1.5px !important;
-      r: 6 !important;
+    .info-card {
+      background: var(--light-color);
+      padding: 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+      display: none;
+    }
+    
+    .info-card-title {
+      font-weight: 500;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+    
+    .info-card-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    
+    .info-card-item {
+      font-size: 0.9rem;
+    }
+    
+    .info-card-label {
+      font-weight: 500;
+      color: var(--dark-color);
+    }
+    
+    .correlation-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+    
+    .correlation-value {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--primary-color);
+      padding: 0.5rem;
+      border-radius: 4px;
+      background: rgba(236, 240, 241, 0.7);
+    }
+    
+    .selected-correlation {
+      background: rgba(231, 76, 60, 0.1);
+      border-left: 3px solid var(--accent-color);
     }
     
     .loading {
@@ -130,13 +277,78 @@
       align-items: center;
       height: 100%;
       font-size: 1.2rem;
-      color: var(--gray-dark);
+      color: var(--dark-color);
+    }
+    
+    .progress-bar {
+      width: 100%;
+      max-width: 400px;
+      height: 8px;
+      background: #eee;
+      border-radius: 4px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    
+    .progress {
+      height: 100%;
+      background: var(--secondary-color);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .axis-label {
+      font-size: 0.9rem;
+      fill: var(--dark-color);
+    }
+    
+    .grid-line {
+      stroke: #eee;
+      stroke-width: 1px;
+      shape-rendering: crispEdges;
+    }
+    
+    .trend-line {
+      stroke: var(--accent-color);
+      stroke-width: 2px;
+      stroke-dasharray: 5,5;
+      opacity: 0.7;
+    }
+    
+    .selected-point {
+      fill: var(--accent-color) !important;
+      stroke: #c0392b !important;
+      stroke-width: 1.5px !important;
+      r: 6 !important;
+    }
+    
+    .search-results {
+      position: absolute;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      width: 100%;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: none;
+    }
+    
+    .search-result-item {
+      padding: 0.5rem;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .search-result-item:hover {
+      background-color: #f5f5f5;
     }
     
     .loading-spinner {
       border: 4px solid rgba(0, 0, 0, 0.1);
       border-radius: 50%;
-      border-top: 4px solid var(--blue);
+      border-top: 4px solid var(--secondary-color);
       width: 30px;
       height: 30px;
       animation: spin 1s linear infinite;
@@ -147,8 +359,44 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
-    /* Additional optimized styles... */
+
+    /* Brush tool styles */
+    .brush .selection {
+      fill: var(--secondary-color);
+      fill-opacity: 0.2;
+      stroke: var(--secondary-color);
+      stroke-width: 1.5;
+    }
+
+    .brush .handle {
+      fill: var(--secondary-color);
+    }
+
+    .brush .overlay {
+      fill: none;
+      pointer-events: all;
+    }
+
+    .zoom-controls {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .zoom-button {
+      background: var(--light-color);
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .zoom-button:hover {
+      background: var(--secondary-color);
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -205,8 +453,16 @@
           <div class="loading">
             <div class="loading-spinner"></div>
             Loading map data...
+            <div class="progress-bar">
+              <div class="progress" id="map-progress"></div>
+            </div>
           </div>
           <svg id="map"></svg>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="info-card" id="county-info">
+          <div class="info-card-title">Selected County Details</div>
+          <div class="info-card-content" id="county-details"></div>
         </div>
       </div>
     </div>
@@ -223,6 +479,19 @@
           </div>
           <svg id="scatterplot"></svg>
         </div>
+        <div class="zoom-controls">
+          <button class="zoom-button" id="zoom-in">Zoom In</button>
+          <button class="zoom-button" id="zoom-out">Zoom Out</button>
+          <button class="zoom-button" id="reset-zoom">Reset</button>
+        </div>
+        <div class="correlation-container">
+          <div class="correlation-value" id="correlation-value">
+            Overall correlation: <span id="overall-correlation"></span>
+          </div>
+          <div class="correlation-value selected-correlation" id="selected-correlation" style="display: none;">
+            Selected county deviation: <span id="deviation-value"></span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -238,258 +507,413 @@ const config = {
   margin: { top: 40, right: 40, bottom: 60, left: 60 }
 };
 
-// DOM Elements
-const dom = {
-  mapContainer: document.getElementById("map-container"),
-  scatterContainer: document.getElementById("scatter-container"),
-  countySearch: document.getElementById("county-search"),
-  searchResults: document.getElementById("search-results"),
-  attributeSelect: document.getElementById("attribute-select"),
-  xAxisSelect: document.getElementById("x-axis-select"),
-  yAxisSelect: document.getElementById("y-axis-select"),
-  tooltip: document.getElementById("tooltip")
-};
-
-// Data and State
-const state = {
-  data: [],
-  selectedCounty: null,
-  geoData: null,
-  currentScatterAttrs: { x: null, y: null },
-  regressionLine: null
-};
-
-// Color scales configuration
+// Color scales for different attributes
 const colorScales = {
-  Poverty_Rate_ACS: { scale: d3.interpolateReds, domain: [0, 50] },
-  EmploymentRate: { scale: d3.interpolateGreens, domain: [0, 100] },
-  PerCapitaInc: { scale: d3.interpolateBlues, domain: [0, 100000] }
+  Poverty_Rate_ACS: d3.scaleSequential(d3.interpolateReds).domain([0, 50]),
+  EmploymentRate: d3.scaleSequential(d3.interpolateGreens).domain([0, 100]),
+  PerCapitaInc: d3.scaleSequential(d3.interpolateBlues).domain([0, 100000])
 };
 
-// Attribute labels
-const attrLabels = {
+// Attribute labels for display
+const attributeLabels = {
   Poverty_Rate_ACS: "Poverty Rate (%)",
   EmploymentRate: "Employment Rate (%)",
   PerCapitaInc: "Per Capita Income ($)"
 };
 
+let data = [];
+let selectedCounty = null;
+let geoData = null;
+let currentScatterplotData = { xAttr: null, yAttr: null, xDomain: null, yDomain: null };
+let regressionLine = null;
+
 // Initialize visualizations
-async function initVisualizations() {
-  try {
-    const [csvData, geoJson] = await Promise.all([
-      d3.csv("final_poverty_employment_data_fixed_cleaned.csv"),
-      d3.json("us_counties_cleaned.json")
-    ]);
-    
-    // Process data
-    state.data = csvData.map(d => {
-      Object.keys(colorScales).forEach(attr => d[attr] = +d[attr]);
+function initVisualizations() {
+  // Load CSV data first (smaller file)
+  d3.csv("final_poverty_employment_data_fixed_cleaned.csv").then(csv => {
+    data = csv.map(d => {
+      // Convert numeric fields
+      Object.keys(colorScales).forEach(attr => {
+        d[attr] = +d[attr];
+      });
       return d;
     });
-    state.geoData = geoJson;
     
+    // Initialize search functionality
     initSearch();
-    createScatterplot(dom.xAxisSelect.value, dom.yAxisSelect.value);
-    createMap(dom.attributeSelect.value);
     
-  } catch (error) {
-    console.error("Error loading data:", error);
-    dom.scatterContainer.querySelector(".loading").textContent = 
-      "Error loading data. Please check console for details.";
-  }
+    // Create scatterplot while map loads
+    createScatterplot(
+      document.getElementById("x-axis-select").value,
+      document.getElementById("y-axis-select").value
+    );
+    
+    // Then load the larger geoJSON file with progress updates
+    loadGeoDataWithProgress();
+  }).catch(error => {
+    console.error("Error loading CSV data:", error);
+    d3.select("#scatter-container .loading").text("Error loading data. Please check console for details.");
+  });
+}
+
+// Load geoJSON with progress reporting
+function loadGeoDataWithProgress() {
+  const progress = d3.select("#map-progress");
+  const loadingText = d3.select("#map-container .loading");
+  
+  // Use fetch API to track progress
+  fetch("us_counties_cleaned.json")
+    .then(response => {
+      if (!response.ok) throw new Error("Network response was not ok");
+      
+      const contentLength = +response.headers.get('Content-Length');
+      let loaded = 0;
+      const reader = response.body.getReader();
+      const chunks = [];
+      
+      function readChunk() {
+        return reader.read().then(({ done, value }) => {
+          if (done) {
+            return new Blob(chunks);
+          }
+          
+          chunks.push(value);
+          loaded += value.length;
+          const percent = Math.round((loaded / contentLength) * 100);
+          progress.style("width", `${percent}%`);
+          loadingText.text(`Loading map data... ${percent}%`);
+          
+          return readChunk();
+        });
+      }
+      
+      return readChunk();
+    })
+    .then(blob => blob.text())
+    .then(text => {
+      geoData = JSON.parse(text);
+      createMap(document.getElementById("attribute-select").value);
+      d3.select("#map-container .loading").style("display", "none");
+    })
+    .catch(error => {
+      console.error("Error loading geoJSON:", error);
+      d3.select("#map-container .loading").text("Error loading map data. Please check console for details.");
+    });
 }
 
 // Initialize search functionality
 function initSearch() {
-  dom.countySearch.addEventListener("input", function() {
+  const searchInput = document.getElementById("county-search");
+  const searchResults = document.getElementById("search-results");
+  
+  searchInput.addEventListener("input", function() {
     const query = this.value.toLowerCase();
     if (query.length < 2) {
-      dom.searchResults.style.display = "none";
+      searchResults.style.display = "none";
       return;
     }
     
-    const results = state.data.filter(d => 
+    const results = data.filter(d => 
       d.County.toLowerCase().includes(query) || 
       d.State.toLowerCase().includes(query)
     ).slice(0, 10);
     
     if (results.length > 0) {
-      dom.searchResults.innerHTML = results.map(d => 
+      searchResults.innerHTML = results.map(d => 
         `<div class="search-result-item" data-fips="${d.FIPS.padStart(5, '0')}">
           ${d.County}, ${d.State} (${d.Poverty_Rate_ACS}% poverty)
         </div>`
       ).join("");
       
-      dom.searchResults.style.display = "block";
+      searchResults.style.display = "block";
       
       // Add click handlers to search results
       document.querySelectorAll(".search-result-item").forEach(item => {
         item.addEventListener("click", function() {
-          state.selectedCounty = this.getAttribute("data-fips");
-          const county = state.data.find(d => d.FIPS.padStart(5, '0') === state.selectedCounty);
-          dom.countySearch.value = `${county.County}, ${county.State}`;
-          dom.searchResults.style.display = "none";
-          updateVisualizations();
+          selectedCounty = this.getAttribute("data-fips");
+          searchInput.value = `${data.find(d => d.FIPS.padStart(5, '0') === selectedCounty).County}, ${data.find(d => d.FIPS.padStart(5, '0') === selectedCounty).State}`;
+          searchResults.style.display = "none";
+          updateSelectedCountyInfo();
+          if (geoData) {
+            createMap(document.getElementById("attribute-select").value);
+          }
+          createScatterplot(
+            document.getElementById("x-axis-select").value,
+            document.getElementById("y-axis-select").value
+          );
         });
       });
     } else {
-      dom.searchResults.innerHTML = "<div class='search-result-item'>No counties found</div>";
-      dom.searchResults.style.display = "block";
+      searchResults.innerHTML = "<div class='search-result-item'>No counties found</div>";
+      searchResults.style.display = "block";
     }
   });
   
   // Hide results when clicking outside
-  document.addEventListener("click", (e) => {
-    if (e.target !== dom.countySearch) {
-      dom.searchResults.style.display = "none";
+  document.addEventListener("click", function(e) {
+    if (e.target.id !== "county-search") {
+      searchResults.style.display = "none";
     }
   });
 }
 
 // Create choropleth map
 function createMap(attribute) {
-  if (!state.geoData) return;
+  if (!geoData) return;
   
-  const svg = d3.select("#map").html("")
+  const container = d3.select("#map-container");
+  const svg = container.select("#map")
     .attr("width", config.width)
-    .attr("height", config.height);
+    .attr("height", config.height)
+    .html("");
   
-  const colorConfig = colorScales[attribute];
-  const colorScale = d3.scaleSequential(colorConfig.scale).domain(colorConfig.domain);
+  // Update title
+  container.select(".panel-title").text(`County-Level ${attributeLabels[attribute]}`);
   
+  // Create projection and path generator
   const projection = d3.geoAlbersUsa()
     .scale(1200)
     .translate([config.width / 2, config.height / 2]);
   
   const path = d3.geoPath().projection(projection);
   
+  // Create color scale
+  const colorScale = colorScales[attribute];
+  
+  // Simplify the geoJSON features for better performance
+  const features = topojson.feature(geoData, geoData.objects.counties).features;
+  
+  // Create map
   svg.selectAll("path")
-    .data(topojson.feature(state.geoData, state.geoData.objects.counties).features)
+    .data(features)
     .join("path")
     .attr("d", path)
     .attr("fill", d => {
-      const county = state.data.find(c => c.FIPS.padStart(5, '0') === d.id);
+      const county = data.find(c => c.FIPS.padStart(5, '0') === d.id);
       return county ? colorScale(county[attribute]) : "#eee";
     })
     .attr("stroke", "#fff")
-    .attr("stroke-width", d => d.id === state.selectedCounty ? 2 : 0.5)
-    .on("mouseover", (e, d) => showTooltip(e, d, true))
-    .on("mouseout", hideTooltip)
-    .on("click", (e, d) => {
-      state.selectedCounty = d.id;
-      updateVisualizations();
-    });
+    .attr("stroke-width", 0.5)
+    .attr("class", d => d.id === selectedCounty ? "highlighted" : null)
+    .on("mouseover", handleMapMouseover)
+    .on("mouseout", handleMapMouseout)
+    .on("click", handleMapClick);
   
-  dom.mapContainer.querySelector(".loading").style.display = "none";
+  // Create legend
+  createLegend(attribute, colorScale);
+  
+  // Update county info if one is selected
+  if (selectedCounty) {
+    updateSelectedCountyInfo();
+  }
 }
 
-// Create scatterplot
-function createScatterplot(xAttr, yAttr) {
-  state.currentScatterAttrs = { x: xAttr, y: yAttr };
+// Create legend
+function createLegend(attribute, colorScale) {
+  const legendSvg = d3.select("#legend").html("")
+    .append("svg")
+    .attr("width", 400)
+    .attr("height", 60);
   
-  const svg = d3.select("#scatterplot").html("")
+  const legendWidth = 300;
+  const legendHeight = 20;
+  const legendMargin = { top: 10, right: 30, bottom: 30, left: 30 };
+  
+  // Create gradient
+  const defs = legendSvg.append("defs");
+  const gradient = defs.append("linearGradient")
+    .attr("id", "legend-gradient")
+    .attr("x1", "0%").attr("y1", "0%")
+    .attr("x2", "100%").attr("y2", "0%");
+  
+  // Add gradient stops
+  const domain = colorScale.domain();
+  gradient.selectAll("stop")
+    .data(d3.range(0, 1.01, 0.1))
+    .enter().append("stop")
+    .attr("offset", d => `${d * 100}%`)
+    .attr("stop-color", d => colorScale(d3.interpolate(domain[0], domain[1])(d)));
+  
+  // Append gradient to rectangle
+  legendSvg.append("rect")
+    .attr("x", legendMargin.left)
+    .attr("y", legendMargin.top)
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#legend-gradient)");
+  
+  // Create axis
+  const xScale = d3.scaleLinear()
+    .domain(domain)
+    .range([legendMargin.left, legendMargin.left + legendWidth]);
+  
+  const axis = d3.axisBottom(xScale)
+    .ticks(5)
+    .tickSize(6)
+    .tickFormat(d => {
+      if (attribute === "PerCapitaInc") return `$${d3.format(",.0f")(d)}`;
+      return `${d}%`;
+    });
+  
+  legendSvg.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${legendMargin.top + legendHeight})`)
+    .call(axis);
+  
+  // Add title
+  legendSvg.append("text")
+    .attr("x", legendMargin.left + legendWidth / 2)
+    .attr("y", legendMargin.top - 5)
+    .attr("text-anchor", "middle")
+    .text(attributeLabels[attribute]);
+}
+
+// Create scatterplot with brush tool
+function createScatterplot(xAttr, yAttr, xDomain = null, yDomain = null) {
+  const container = d3.select("#scatter-container");
+  const svg = container.select("#scatterplot")
     .attr("width", config.width)
-    .attr("height", config.height);
+    .attr("height", config.height)
+    .html("");
   
-  const filteredData = state.data.filter(d => !isNaN(d[xAttr]) && !isNaN(d[yAttr]));
+  // Hide loading indicator
+  container.select(".loading").style("display", "none");
   
-  // Calculate correlation and regression
+  // Store current attributes and domains
+  currentScatterplotData = { xAttr, yAttr, xDomain, yDomain };
+  
+  // Update title
+  container.select(".panel-title").text(`${attributeLabels[xAttr]} vs ${attributeLabels[yAttr]}`);
+  
+  // Filter data to only include records with both values
+  const filteredData = data.filter(d => !isNaN(d[xAttr]) && !isNaN(d[yAttr]));
+  
+  // Calculate correlation
   const correlation = calculateCorrelation(filteredData, xAttr, yAttr);
-  state.regressionLine = calculateRegression(filteredData, xAttr, yAttr);
+  d3.select("#overall-correlation").html(`
+    <strong>${correlation.toFixed(2)}</strong> 
+    <span style="color:${getCorrelationColor(correlation)}">
+      (${getCorrelationStrength(correlation)})
+    </span>
+  `);
+  
+  // Calculate regression line
+  regressionLine = calculateRegression(filteredData, xAttr, yAttr);
   
   // Set up scales
   const xScale = d3.scaleLinear()
-    .domain(d3.extent(filteredData, d => d[xAttr]))
+    .domain(xDomain || d3.extent(filteredData, d => d[xAttr]))
     .nice()
     .range([config.margin.left, config.width - config.margin.right]);
   
   const yScale = d3.scaleLinear()
-    .domain(d3.extent(filteredData, d => d[yAttr]))
+    .domain(yDomain || d3.extent(filteredData, d => d[yAttr]))
     .nice()
     .range([config.height - config.margin.bottom, config.margin.top]);
   
-  // Add chart elements
+  // Create chart area
   const chart = svg.append("g");
+  
+  // Add grid lines
+  chart.append("g")
+    .attr("class", "grid-line")
+    .attr("transform", `translate(0,${config.height - config.margin.bottom})`)
+    .call(d3.axisBottom(xScale).tickSize(-(config.height - config.margin.top - config.margin.bottom)).tickFormat(""));
+  
+  chart.append("g")
+    .attr("class", "grid-line")
+    .attr("transform", `translate(${config.margin.left},0)`)
+    .call(d3.axisLeft(yScale).tickSize(-(config.width - config.margin.left - config.margin.right)).tickFormat(""));
+  
+  // Add axes
+  chart.append("g")
+    .attr("transform", `translate(0,${config.height - config.margin.bottom})`)
+    .call(d3.axisBottom(xScale));
+  
+  chart.append("g")
+    .attr("transform", `translate(${config.margin.left},0)`)
+    .call(d3.axisLeft(yScale));
+  
+  // Add axis labels
+  chart.append("text")
+    .attr("class", "axis-label")
+    .attr("x", config.width / 2)
+    .attr("y", config.height - 10)
+    .attr("text-anchor", "middle")
+    .text(attributeLabels[xAttr]);
+  
+  chart.append("text")
+    .attr("class", "axis-label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -config.height / 2)
+    .attr("y", 20)
+    .attr("text-anchor", "middle")
+    .text(attributeLabels[yAttr]);
   
   // Add regression line
   chart.append("line")
     .attr("class", "trend-line")
-    .attr("x1", xScale(state.regressionLine.x1))
-    .attr("y1", yScale(state.regressionLine.y1))
-    .attr("x2", xScale(state.regressionLine.x2))
-    .attr("y2", yScale(state.regressionLine.y2));
+    .attr("x1", xScale(regressionLine.x1))
+    .attr("y1", yScale(regressionLine.y1))
+    .attr("x2", xScale(regressionLine.x2))
+    .attr("y2", yScale(regressionLine.y2));
   
   // Add data points
-  chart.selectAll("circle")
+  const points = chart.selectAll("circle")
     .data(filteredData)
     .join("circle")
     .attr("cx", d => xScale(d[xAttr]))
     .attr("cy", d => yScale(d[yAttr]))
     .attr("r", 4)
     .attr("fill", "rgba(52, 152, 219, 0.6)")
-    .attr("class", d => d.FIPS.padStart(5, '0') === state.selectedCounty ? "selected-point" : null)
-    .on("mouseover", (e, d) => showTooltip(e, d, false))
-    .on("mouseout", hideTooltip)
-    .on("click", (e, d) => {
-      state.selectedCounty = d.FIPS.padStart(5, '0');
-      updateVisualizations();
-    });
+    .attr("stroke", "none")
+    .attr("class", d => d.FIPS.padStart(5, '0') === selectedCounty ? "selected-point" : null)
+    .on("mouseover", handleScatterMouseover)
+    .on("mouseout", handleScatterMouseout)
+    .on("click", handleScatterClick);
   
-  dom.scatterContainer.querySelector(".loading").style.display = "none";
-}
-
-// Helper functions
-function updateVisualizations() {
-  createMap(dom.attributeSelect.value);
-  createScatterplot(dom.xAxisSelect.value, dom.yAxisSelect.value);
-}
-
-function showTooltip(event, d, isMap) {
-  const county = isMap ? 
-    state.data.find(c => c.FIPS.padStart(5, '0') === d.id) : d;
+  // Create brush
+  const brush = d3.brush()
+    .extent([[config.margin.left, config.margin.top], 
+             [config.width - config.margin.right, config.height - config.margin.bottom]])
+    .on("end", brushended);
   
-  if (!county) return;
+  // Add brush to chart
+  chart.append("g")
+    .attr("class", "brush")
+    .call(brush);
   
-  const attr = isMap ? dom.attributeSelect.value : state.currentScatterAttrs.x;
-  const attr2 = isMap ? null : state.currentScatterAttrs.y;
-  
-  let content = `<div class="tooltip-title">${county.County}, ${county.State}</div>`;
-  
-  content += `
-    <div class="tooltip-row">
-      <span class="tooltip-label">${attrLabels[attr]}:</span>
-      <span>${formatValue(county[attr], attr)}</span>
-    </div>`;
-  
-  if (attr2) {
-    content += `
-      <div class="tooltip-row">
-        <span class="tooltip-label">${attrLabels[attr2]}:</span>
-        <span>${formatValue(county[attr2], attr2)}</span>
-      </div>`;
+  function brushended(event) {
+    if (!event.selection) return;
+    
+    const [[x0, y0], [x1, y1]] = event.selection;
+    const newXDomain = [xScale.invert(x0), xScale.invert(x1)];
+    const newYDomain = [yScale.invert(y1), yScale.invert(y0)];
+    
+    createScatterplot(xAttr, yAttr, newXDomain, newYDomain);
   }
   
-  dom.tooltip.innerHTML = content;
-  dom.tooltip.style.opacity = 1;
-  dom.tooltip.style.left = `${event.pageX}px`;
-  dom.tooltip.style.top = `${event.pageY - 10}px`;
+  // Update selected county deviation if one is selected
+  if (selectedCounty) {
+    updateSelectedCountyDeviation();
+  } else {
+    d3.select("#selected-correlation").style("display", "none");
+  }
 }
 
-function hideTooltip() {
-  dom.tooltip.style.opacity = 0;
-}
-
-function formatValue(value, attr) {
-  return attr === "PerCapitaInc" ? `$${d3.format(",.0f")(value)}` : `${value.toFixed(1)}%`;
-}
-
+// Calculate Pearson correlation coefficient
 function calculateCorrelation(data, xAttr, yAttr) {
   const n = data.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
   
   data.forEach(d => {
-    const x = d[xAttr], y = d[yAttr];
-    sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x; sumY2 += y * y;
+    const x = d[xAttr];
+    const y = d[yAttr];
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumX2 += x * x;
+    sumY2 += y * y;
   });
   
   const numerator = sumXY - (sumX * sumY) / n;
@@ -498,39 +922,293 @@ function calculateCorrelation(data, xAttr, yAttr) {
   return denominator !== 0 ? numerator / denominator : 0;
 }
 
+// Calculate linear regression
 function calculateRegression(data, xAttr, yAttr) {
   const n = data.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
   
   data.forEach(d => {
-    const x = d[xAttr], y = d[yAttr];
-    sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x;
+    const x = d[xAttr];
+    const y = d[yAttr];
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumX2 += x * x;
   });
   
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
   const intercept = (sumY - slope * sumX) / n;
+  
   const xMin = d3.min(data, d => d[xAttr]);
   const xMax = d3.max(data, d => d[xAttr]);
   
   return {
-    slope, intercept,
-    x1: xMin, y1: slope * xMin + intercept,
-    x2: xMax, y2: slope * xMax + intercept
+    slope,
+    intercept,
+    x1: xMin,
+    y1: slope * xMin + intercept,
+    x2: xMax,
+    y2: slope * xMax + intercept
   };
 }
 
+// Calculate deviation of selected county from regression line
+function updateSelectedCountyDeviation() {
+  if (!selectedCounty) return;
+  
+  const county = data.find(c => c.FIPS.padStart(5, '0') === selectedCounty);
+  if (!county) return;
+  
+  const { xAttr, yAttr } = currentScatterplotData;
+  const x = county[xAttr];
+  const y = county[yAttr];
+  
+  if (isNaN(x) || !regressionLine) {
+    d3.select("#selected-correlation").style("display", "none");
+    return;
+  }
+  
+  // Calculate expected y value from regression
+  const expectedY = regressionLine.slope * x + regressionLine.intercept;
+  const deviation = y - expectedY;
+  const percentDeviation = (deviation / expectedY) * 100;
+  
+  d3.select("#deviation-value").html(`
+    <strong>${percentDeviation > 0 ? '+' : ''}${percentDeviation.toFixed(1)}%</strong> 
+    from expected ${attributeLabels[yAttr]}
+  `);
+  
+  d3.select("#selected-correlation").style("display", "block");
+}
+
+// Get correlation strength description
+function getCorrelationStrength(r) {
+  const absR = Math.abs(r);
+  if (absR >= 0.8) return "Very Strong";
+  if (absR >= 0.6) return "Strong";
+  if (absR >= 0.4) return "Moderate";
+  if (absR >= 0.2) return "Weak";
+  return "Very Weak";
+}
+
+// Get color for correlation value
+function getCorrelationColor(r) {
+  if (r >= 0.6) return "#27ae60"; // Strong positive
+  if (r >= 0.3) return "#2ecc71"; // Moderate positive
+  if (r <= -0.6) return "#e74c3c"; // Strong negative
+  if (r <= -0.3) return "#e67e22"; // Moderate negative
+  return "#7f8c8d"; // Weak or no correlation
+}
+
+// Event handlers
+function handleMapMouseover(event, d) {
+  const county = data.find(c => c.FIPS.padStart(5, '0') === d.id);
+  if (!county) return;
+  
+  const tooltip = d3.select("#tooltip");
+  const attribute = document.getElementById("attribute-select").value;
+  
+  tooltip.html(`
+    <div class="tooltip-title">${county.County}, ${county.State}</div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">${attributeLabels[attribute]}:</span>
+      <span>${attribute === "PerCapitaInc" ? 
+        `$${d3.format(",.0f")(county[attribute])}` : 
+        `${county[attribute].toFixed(1)}%`}
+      </span>
+    </div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">Poverty Rate:</span>
+      <span>${county.Poverty_Rate_ACS.toFixed(1)}%</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">Employment Rate:</span>
+      <span>${county.EmploymentRate.toFixed(1)}%</span>
+    </div>
+  `);
+  
+  tooltip.style("opacity", 1)
+    .style("left", `${event.pageX}px`)
+    .style("top", `${event.pageY - 10}px`);
+  
+  d3.select(event.currentTarget).attr("stroke", "#333").attr("stroke-width", 1.5);
+}
+
+function handleMapMouseout(event, d) {
+  d3.select("#tooltip").style("opacity", 0);
+  d3.select(event.currentTarget)
+    .attr("stroke", d.id === selectedCounty ? "#e74c3c" : "#fff")
+    .attr("stroke-width", d.id === selectedCounty ? 2 : 0.5);
+}
+
+function handleMapClick(event, d) {
+  selectedCounty = d.id;
+  updateSelectedCountyInfo();
+  updateSelectedCountyDeviation();
+  createMap(document.getElementById("attribute-select").value);
+  createScatterplot(
+    document.getElementById("x-axis-select").value,
+    document.getElementById("y-axis-select").value
+  );
+}
+
+function handleScatterMouseover(event, d) {
+  const tooltip = d3.select("#tooltip");
+  const xAttr = document.getElementById("x-axis-select").value;
+  const yAttr = document.getElementById("y-axis-select").value;
+  
+  tooltip.html(`
+    <div class="tooltip-title">${d.County}, ${d.State}</div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">${attributeLabels[xAttr]}:</span>
+      <span>${xAttr === "PerCapitaInc" ? 
+        `$${d3.format(",.0f")(d[xAttr])}` : 
+        `${d[xAttr].toFixed(1)}%`}
+      </span>
+    </div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">${attributeLabels[yAttr]}:</span>
+      <span>${yAttr === "PerCapitaInc" ? 
+        `$${d3.format(",.0f")(d[yAttr])}` : 
+        `${d[yAttr].toFixed(1)}%`}
+      </span>
+    </div>
+  `);
+  
+  tooltip.style("opacity", 1)
+    .style("left", `${event.pageX}px`)
+    .style("top", `${event.pageY - 10}px`);
+  
+  d3.select(event.currentTarget)
+    .attr("r", 6)
+    .attr("fill", "#e74c3c");
+}
+
+function handleScatterMouseout(event, d) {
+  d3.select("#tooltip").style("opacity", 0);
+  d3.select(event.currentTarget)
+    .attr("r", d.FIPS.padStart(5, '0') === selectedCounty ? 6 : 4)
+    .attr("fill", d.FIPS.padStart(5, '0') === selectedCounty ? "#e74c3c" : "rgba(52, 152, 219, 0.6)");
+}
+
+function handleScatterClick(event, d) {
+  selectedCounty = d.FIPS.padStart(5, '0');
+  updateSelectedCountyInfo();
+  updateSelectedCountyDeviation();
+  if (geoData) {
+    createMap(document.getElementById("attribute-select").value);
+  }
+  createScatterplot(
+    document.getElementById("x-axis-select").value,
+    document.getElementById("y-axis-select").value
+  );
+}
+
+function updateSelectedCountyInfo() {
+  if (!selectedCounty) {
+    d3.select("#county-info").style("display", "none");
+    return;
+  }
+  
+  const county = data.find(c => c.FIPS.padStart(5, '0') === selectedCounty);
+  if (!county) return;
+  
+  const details = d3.select("#county-details").html("");
+  
+  details.append("div").html(`
+    <span class="info-card-label">State:</span>
+    <span>${county.State}</span>
+  `);
+  
+  details.append("div").html(`
+    <span class="info-card-label">Poverty Rate:</span>
+    <span>${county.Poverty_Rate_ACS.toFixed(1)}%</span>
+  `);
+  
+  details.append("div").html(`
+    <span class="info-card-label">Employment Rate:</span>
+    <span>${county.EmploymentRate.toFixed(1)}%</span>
+  `);
+  
+  details.append("div").html(`
+    <span class="info-card-label">Per Capita Income:</span>
+    <span>$${d3.format(",.0f")(county.PerCapitaInc)}</span>
+  `);
+  
+  d3.select("#county-info").style("display", "block");
+}
+
 // Event listeners
-[dom.attributeSelect, dom.xAxisSelect, dom.yAxisSelect].forEach(select => {
-  select.addEventListener("change", () => {
-    if (select === dom.attributeSelect) {
-      createMap(select.value);
-    } else {
-      createScatterplot(dom.xAxisSelect.value, dom.yAxisSelect.value);
-    }
-  });
+document.getElementById("attribute-select").addEventListener("change", function() {
+  if (geoData) {
+    createMap(this.value);
+  }
 });
 
-// Initialize
+document.getElementById("x-axis-select").addEventListener("change", function() {
+  createScatterplot(this.value, document.getElementById("y-axis-select").value);
+});
+
+document.getElementById("y-axis-select").addEventListener("change", function() {
+  createScatterplot(document.getElementById("x-axis-select").value, this.value);
+});
+
+// Zoom control event handlers
+document.getElementById("zoom-in").addEventListener("click", function() {
+  const xAttr = document.getElementById("x-axis-select").value;
+  const yAttr = document.getElementById("y-axis-select").value;
+  const currentXScale = d3.scaleLinear().domain(currentScatterplotData.xDomain || 
+    d3.extent(data.filter(d => !isNaN(d[xAttr]) && !isNaN(d[yAttr])), d => d[xAttr]));
+  const currentYScale = d3.scaleLinear().domain(currentScatterplotData.yDomain || 
+    d3.extent(data.filter(d => !isNaN(d[xAttr]) && !isNaN(d[yAttr])), d => d[yAttr]));
+  
+  const xRange = currentXScale.domain()[1] - currentXScale.domain()[0];
+  const yRange = currentYScale.domain()[1] - currentYScale.domain()[0];
+  
+  const newXDomain = [
+    currentXScale.domain()[0] + xRange * 0.1,
+    currentXScale.domain()[1] - xRange * 0.1
+  ];
+  
+  const newYDomain = [
+    currentYScale.domain()[0] + yRange * 0.1,
+    currentYScale.domain()[1] - yRange * 0.1
+  ];
+  
+  createScatterplot(xAttr, yAttr, newXDomain, newYDomain);
+});
+
+document.getElementById("zoom-out").addEventListener("click", function() {
+  const xAttr = document.getElementById("x-axis-select").value;
+  const yAttr = document.getElementById("y-axis-select").value;
+  const currentXScale = d3.scaleLinear().domain(currentScatterplotData.xDomain || 
+    d3.extent(data.filter(d => !isNaN(d[xAttr]) && !isNaN(d[yAttr])), d => d[xAttr]));
+  const currentYScale = d3.scaleLinear().domain(currentScatterplotData.yDomain || 
+    d3.extent(data.filter(d => !isNaN(d[xAttr]) && !isNaN(d[yAttr])), d => d[yAttr]));
+  
+  const xRange = currentXScale.domain()[1] - currentXScale.domain()[0];
+  const yRange = currentYScale.domain()[1] - currentYScale.domain()[0];
+  
+  const newXDomain = [
+    currentXScale.domain()[0] - xRange * 0.1,
+    currentXScale.domain()[1] + xRange * 0.1
+  ];
+  
+  const newYDomain = [
+    currentYScale.domain()[0] - yRange * 0.1,
+    currentYScale.domain()[1] + yRange * 0.1
+  ];
+  
+  createScatterplot(xAttr, yAttr, newXDomain, newYDomain);
+});
+
+document.getElementById("reset-zoom").addEventListener("click", function() {
+  const xAttr = document.getElementById("x-axis-select").value;
+  const yAttr = document.getElementById("y-axis-select").value;
+  createScatterplot(xAttr, yAttr);
+});
+
+// Initialize the visualizations
 initVisualizations();
 </script>
 </body>
